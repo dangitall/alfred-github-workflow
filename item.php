@@ -100,18 +100,17 @@ class Item
         if (!$this->prefixOnlyTitle && stripos($query, $this->prefix) === 0) {
             $query = substr($query, strlen($this->prefix));
         }
-        $this->sameChars = 0;
-        $queryLength = strlen($query);
-        for ($i = 0, $k = 0; $i < $queryLength; ++$i, $k++) {
-            for (; isset($comparator[$k]) && $comparator[$k] !== $query[$i]; ++$k);
-            if (!isset($comparator[$k])) {
-                return false;
-            }
-            if ($i === $k) {
-                ++$this->sameChars;
-            }
+        $query_re = "/" . join(".*?", str_split($query)) . "/";
+        $maybe_matches = array_map(function ($i) use($comparator, $query_re) {
+            preg_match($query_re, $comparator, $m, 0, $i);
+            return $m[0];
+          }, range(0, strlen($comparator)));
+        $matches = array_filter($maybe_matches);
+        if (!sizeof($matches)) {
+            return false;
         }
-        $this->missingChars = strlen($comparator) - $queryLength;
+        $this->sameChars = strlen($query) - min(array_map(strlen, $matches));
+        $this->missingChars = strlen($comparator) - strlen($query);
         return true;
     }
 
